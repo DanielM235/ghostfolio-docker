@@ -26,15 +26,26 @@ set -euo pipefail
 # CONFIGURATION
 # -----------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BASE_DIR="/var/www/folio.dmla.tech"
-BACKUP_DIR="/var/backups/ghostfolio"
+
+# Load environment variables from .env file
+if [[ -f "$SCRIPT_DIR/.env" ]]; then
+    source "$SCRIPT_DIR/.env"
+else
+    echo "Environment file .env not found"
+    exit 1
+fi
+
+# Use environment variables with fallbacks
+BASE_DIR="${DATA_BASE_PATH:-/var/www/folio.dmla.tech}"
+PROJECT_NAME="${PROJECT_NAME:-ghostfolio}"
+BACKUP_DIR="/var/backups/${PROJECT_NAME}"
 DATE_FORMAT=$(date +"%Y%m%d_%H%M%S")
-BACKUP_NAME="ghostfolio_backup_$DATE_FORMAT"
+BACKUP_NAME="${PROJECT_NAME}_backup_$DATE_FORMAT"
 
 # Docker Compose settings
 COMPOSE_FILE="$SCRIPT_DIR/docker-compose.yml"
-POSTGRES_CONTAINER="ghostfolio_postgres"
-REDIS_CONTAINER="ghostfolio_redis"
+POSTGRES_CONTAINER="${PROJECT_NAME}_postgres"
+REDIS_CONTAINER="${PROJECT_NAME}_redis"
 
 # Retention settings
 KEEP_BACKUPS=30  # Keep last 30 backups
@@ -259,7 +270,7 @@ cleanup_old_backups() {
     log_info "Cleaning up old backups (keeping last $KEEP_BACKUPS)..."
     
     # Find and remove old backups
-    find "$BACKUP_DIR" -name "ghostfolio_backup_*" -type f -o -name "ghostfolio_backup_*" -type d | \
+    find "$BACKUP_DIR" -name "${PROJECT_NAME}_backup_*" -type f -o -name "${PROJECT_NAME}_backup_*" -type d | \
         sort -r | \
         tail -n +$((KEEP_BACKUPS + 1)) | \
         xargs -r rm -rf
@@ -282,11 +293,13 @@ perform_backup() {
     
     # Create backup metadata
     cat > "$backup_path/backup_info.txt" << EOF
-Ghostfolio Backup Information
+${PROJECT_NAME^} Backup Information
 =============================
 Backup Date: $(date)
 Backup Type: $([ "$db_only" = true ] && echo "Database Only" || [ "$files_only" = true ] && echo "Files Only" || [ "$config_only" = true ] && echo "Configuration Only" || echo "Full Backup")
-Ghostfolio Version: $(docker compose -f "$COMPOSE_FILE" ps ghostfolio --format "table {{.Image}}" | tail -n1)
+Application Version: $(docker compose -f "$COMPOSE_FILE" ps ${PROJECT_NAME} --format "table {{.Image}}" | tail -n1)
+Base Domain: ${BASE_DOMAIN}
+Data Path: ${BASE_DIR}
 Script Version: 1.0
 EOF
     

@@ -3,7 +3,24 @@
 # =============================================================================
 # GHOSTFOLIO DEPLOYMENT SCRIPT
 # =============================================================================
-# Automated setup script for deploying Ghostfolio with Docker Compose
+# Automated setup script for deploying Ghost    # Test if Ghostfolio is responding
+    log_info "Testing ${PROJECT_NAME^} application..."
+    if curl -s -f "http://localhost:${EXTERNAL_PORT}/api/v1/health" > /dev/null; then
+        log_success "${PROJECT_NAME^} is responding on port ${EXTERNAL_PORT}"
+    else
+        log_warning "${PROJECT_NAME^} may still be starting up"
+        log_info "Check logs with: docker compose logs ${PROJECT_NAME}"
+    fi
+    
+    # Display connection information
+    echo
+    log_success "Deployment completed successfully!"
+    echo
+    echo "Next steps:"
+    echo "1. Open http://localhost:${EXTERNAL_PORT} in your browser"
+    echo "2. Create the first admin user account"
+    echo "3. Configure nginx reverse proxy to forward ${BASE_DOMAIN} to localhost:${EXTERNAL_PORT}"
+    echoCompose
 #
 # This script handles:
 # - Directory structure creation
@@ -24,8 +41,18 @@ set -euo pipefail  # Exit on error, undefined vars, pipe failures
 # CONFIGURATION
 # -----------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_NAME="ghostfolio"
-BASE_DIR="/var/www/folio.dmla.tech"
+
+# Load environment variables if .env exists
+if [[ -f "$SCRIPT_DIR/.env" ]]; then
+    source "$SCRIPT_DIR/.env"
+fi
+
+# Use environment variables with fallbacks for initial setup
+PROJECT_NAME="${PROJECT_NAME:-ghostfolio}"
+BASE_DIR="${DATA_BASE_PATH:-/var/www/folio.dmla.tech}"
+EXTERNAL_PORT="${EXTERNAL_PORT:-8061}"
+BASE_DOMAIN="${BASE_DOMAIN:-localhost}"
+
 DOCKER_COMPOSE_FILE="$SCRIPT_DIR/docker-compose.yml"
 ENV_FILE="$SCRIPT_DIR/.env"
 DB_ENV_FILE="$SCRIPT_DIR/.db.env"

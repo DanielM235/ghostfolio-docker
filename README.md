@@ -14,15 +14,15 @@ Production-ready Docker Compose configuration for self-hosting [Ghostfolio](http
    ```bash
    cp .env.example .env
    cp .db.env.example .db.env
-   # Edit both files and replace all CHANGE_THIS placeholders
+   # Edit both files and configure your specific settings
    ```
 
 3. **Deploy**:
    ```bash
-   ./deploy.sh --backup-first
+   ./deploy.sh
    ```
 
-4. **Access**: Open http://localhost:8061 and create your admin account
+4. **Access**: Open http://localhost:8061 (or your configured port) and create your admin account
 
 ## 📋 Table of Contents
 
@@ -42,9 +42,10 @@ Production-ready Docker Compose configuration for self-hosting [Ghostfolio](http
 
 This deployment provides:
 
-- **Ghostfolio v2.184.0** (pinned for stability)
+- **Configurable Ghostfolio version** (default: v2.184.0, pinned for stability)
 - **PostgreSQL 16** database with optimized configuration
 - **Redis 7** for caching and session management
+- **Flexible configuration** via environment variables
 - **Automated backup and update scripts**
 - **Production-ready security settings**
 - **Comprehensive monitoring and logging**
@@ -52,7 +53,7 @@ This deployment provides:
 ## 🔧 Architecture
 
 ```
-nginx (your existing) → localhost:8061 → Ghostfolio Container
+nginx (your reverse proxy) → localhost:${EXTERNAL_PORT} → Ghostfolio Container
                                             ↓
                                     Internal Network
                                     ↙              ↘
@@ -64,14 +65,14 @@ nginx (your existing) → localhost:8061 → Ghostfolio Container
 
 | Service | Image | Purpose | Port |
 |---------|-------|---------|------|
-| Ghostfolio | `ghostfolio/ghostfolio:2.184.0` | Web application | 8061 |
-| PostgreSQL | `postgres:16-alpine` | Database | Internal only |
-| Redis | `redis:7-alpine` | Cache | Internal only |
+| Ghostfolio | `ghostfolio/ghostfolio:${GHOSTFOLIO_VERSION}` | Web application | ${EXTERNAL_PORT} |
+| PostgreSQL | `postgres:${POSTGRES_VERSION}-alpine` | Database | Internal only |
+| Redis | `redis:${REDIS_VERSION}-alpine` | Cache | Internal only |
 
 ### Volume Structure
 
 ```
-/var/www/folio.dmla.tech/
+${DATA_BASE_PATH}/
 ├── data/
 │   ├── db/postgre/        # PostgreSQL data
 │   ├── cache/redis/       # Redis persistence
@@ -140,6 +141,20 @@ Use the automated deployment script:
 
 ### Environment Variables
 
+#### Project Settings (`.env`)
+
+| Variable | Description | Default | Example |
+|----------|-------------|---------|---------|
+| `PROJECT_NAME` | Project identifier | `ghostfolio` | `my-portfolio` |
+| `BASE_DOMAIN` | Application domain | `folio.dmla.tech` | `portfolio.example.com` |
+| `DATA_BASE_PATH` | Data storage path | `/var/www/folio.dmla.tech` | `/opt/ghostfolio` |
+| `EXTERNAL_PORT` | External port | `8061` | `8080` |
+| `GHOSTFOLIO_VERSION` | App version | `2.184.0` | `2.185.0` |
+| `POSTGRES_VERSION` | PostgreSQL version | `16` | `15` |
+| `REDIS_VERSION` | Redis version | `7` | `6` |
+| `DOCKER_SUBNET` | Internal subnet | `172.20.0.0/16` | `172.21.0.0/16` |
+| `DOCKER_GATEWAY` | Network gateway | `172.20.0.1` | `172.21.0.1` |
+
 #### Application Settings (`.env`)
 
 | Variable | Description | Example |
@@ -170,10 +185,10 @@ Add to your nginx configuration:
 ```nginx
 server {
     listen 80;
-    server_name folio.dmla.tech;
+    server_name ${BASE_DOMAIN};
     
     location / {
-        proxy_pass http://localhost:8061;
+        proxy_pass http://localhost:${EXTERNAL_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -264,7 +279,7 @@ Create scheduled backups with cron:
    docker compose exec postgres psql -U $POSTGRES_USER -d $POSTGRES_DB < backup.sql
    
    # Restore files
-   cp -r backup/storage/* /var/www/folio.dmla.tech/data/storage/
+   cp -r backup/storage/* ${DATA_BASE_PATH}/data/storage/
    ```
 
 3. **Start services**:
@@ -318,7 +333,7 @@ docker compose logs -f redis
 
 ```bash
 # Application health
-curl -f http://localhost:8061/api/v1/health
+curl -f http://localhost:${EXTERNAL_PORT}/api/v1/health
 
 # Database health
 docker compose exec postgres pg_isready
@@ -334,10 +349,10 @@ docker compose exec redis redis-cli ping
 docker stats
 
 # Disk usage
-du -sh /var/www/folio.dmla.tech/*
+du -sh ${DATA_BASE_PATH}/*
 
 # Log sizes
-find /var/www/folio.dmla.tech/logs -name "*.log" -exec du -sh {} \;
+find ${DATA_BASE_PATH}/logs -name "*.log" -exec du -sh {} \;
 ```
 
 ## 🐛 Troubleshooting
@@ -387,11 +402,10 @@ docker compose exec redis redis-cli info stats
 
 ```bash
 # Check port usage
-sudo netstat -tulpn | grep :8061
+sudo netstat -tulpn | grep :${EXTERNAL_PORT}
 
-# Change port in docker-compose.yml if needed
-ports:
-  - "8062:3333"  # Use different external port
+# Change port in .env if needed
+EXTERNAL_PORT=8062  # Use different external port
 ```
 
 ### Log Analysis
@@ -416,8 +430,8 @@ docker compose logs redis | grep -i error
 chmod 600 .env .db.env
 
 # Secure data directories
-chmod 700 /var/www/folio.dmla.tech/data/db/postgre
-chmod 700 /var/www/folio.dmla.tech/data/cache/redis
+chmod 700 ${DATA_BASE_PATH}/data/db/postgre
+chmod 700 ${DATA_BASE_PATH}/data/cache/redis
 ```
 
 ### Network Security

@@ -26,6 +26,20 @@ set -euo pipefail
 # CONFIGURATION
 # -----------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Load environment variables from .env file
+if [[ -f "$SCRIPT_DIR/.env" ]]; then
+    source "$SCRIPT_DIR/.env"
+else
+    log_error "Environment file .env not found"
+    exit 1
+fi
+
+# Use environment variables
+PROJECT_NAME="${PROJECT_NAME:-ghostfolio}"
+EXTERNAL_PORT="${EXTERNAL_PORT:-8061}"
+BASE_DOMAIN="${BASE_DOMAIN:-localhost}"
+
 COMPOSE_FILE="$SCRIPT_DIR/docker-compose.yml"
 BACKUP_SCRIPT="$SCRIPT_DIR/backup.sh"
 UPDATE_LOG="$SCRIPT_DIR/update.log"
@@ -103,19 +117,19 @@ EOF
 # VERSION MANAGEMENT
 # -----------------------------------------------------------------------------
 get_current_version() {
-    log_info "Detecting current Ghostfolio version..."
+    log_info "Detecting current ${PROJECT_NAME^} version..."
     
-    if docker compose -f "$COMPOSE_FILE" ps ghostfolio &>/dev/null; then
-        CURRENT_VERSION=$(docker compose -f "$COMPOSE_FILE" images ghostfolio --format "{{.Repository}}:{{.Tag}}" | cut -d: -f2)
+    if docker compose -f "$COMPOSE_FILE" ps "$PROJECT_NAME" &>/dev/null; then
+        CURRENT_VERSION=$(docker compose -f "$COMPOSE_FILE" images "$PROJECT_NAME" --format "{{.Repository}}:{{.Tag}}" | cut -d: -f2)
         log_info "Current version: $CURRENT_VERSION"
     else
-        log_warning "Ghostfolio service not found or not running"
+        log_warning "${PROJECT_NAME^} service not found or not running"
         CURRENT_VERSION="unknown"
     fi
 }
 
 get_latest_version() {
-    log_info "Fetching latest Ghostfolio version from GitHub..."
+    log_info "Fetching latest ${PROJECT_NAME^} version from GitHub..."
     
     local latest_version
     latest_version=$(curl -s https://api.github.com/repos/ghostfolio/ghostfolio/releases/latest | grep '"tag_name":' | cut -d'"' -f4)
@@ -181,10 +195,10 @@ update_compose_file() {
     # Create backup of current compose file
     cp "$COMPOSE_FILE" "$COMPOSE_FILE.backup"
     
-    # Update version in compose file
-    sed -i "s|ghostfolio/ghostfolio:.*|ghostfolio/ghostfolio:$new_version|g" "$COMPOSE_FILE"
+    # Update GHOSTFOLIO_VERSION in .env file instead of compose file
+    sed -i "s/GHOSTFOLIO_VERSION=.*/GHOSTFOLIO_VERSION=$new_version/g" "$SCRIPT_DIR/.env"
     
-    log_success "Docker Compose file updated"
+    log_success "Environment configuration updated to version $new_version"
 }
 
 pull_new_images() {
@@ -239,19 +253,19 @@ verify_update() {
     echo
     
     # Test application endpoint
-    log_info "Testing Ghostfolio application endpoint..."
+    log_info "Testing ${PROJECT_NAME^} application endpoint..."
     local health_attempts=10
     local health_attempt=0
     
     while [[ $health_attempt -lt $health_attempts ]]; do
-        if curl -s -f http://localhost:8061/api/v1/health > /dev/null; then
-            log_success "Ghostfolio application is responding"
+        if curl -s -f "http://localhost:${EXTERNAL_PORT}/api/v1/health" > /dev/null; then
+            log_success "${PROJECT_NAME^} application is responding"
             break
         fi
         
         ((health_attempt++))
         if [[ $health_attempt -eq $health_attempts ]]; then
-            log_error "Ghostfolio application is not responding"
+            log_error "${PROJECT_NAME^} application is not responding"
             return 1
         fi
         
@@ -260,7 +274,7 @@ verify_update() {
     
     # Verify version
     local new_current_version
-    new_current_version=$(docker compose -f "$COMPOSE_FILE" images ghostfolio --format "{{.Repository}}:{{.Tag}}" | cut -d: -f2)
+    new_current_version=$(docker compose -f "$COMPOSE_FILE" images "$PROJECT_NAME" --format "{{.Repository}}:{{.Tag}}" | cut -d: -f2)
     
     if [[ "$new_current_version" == "$TARGET_VERSION" ]]; then
         log_success "Update verified: now running version $new_current_version"
@@ -374,7 +388,7 @@ perform_update() {
        verify_update; then
         
         log_success "Update completed successfully!"
-        log_success "Ghostfolio updated from $CURRENT_VERSION to $TARGET_VERSION"
+        log_success "${PROJECT_NAME^} updated from $CURRENT_VERSION to $TARGET_VERSION"
         
         # Clean up backup files
         [[ -f "$COMPOSE_FILE.backup" ]] && rm "$COMPOSE_FILE.backup"
@@ -426,7 +440,7 @@ main() {
     done
     
     # Create update log
-    echo "=== Ghostfolio Update Started at $(date) ===" >> "$UPDATE_LOG"
+    echo "=== ${PROJECT_NAME^} Update Started at $(date) ===" >> "$UPDATE_LOG"
     
     # Execute based on options
     if [[ "$rollback" == true ]]; then
@@ -449,7 +463,7 @@ main() {
         perform_update "$backup_first"
     fi
     
-    echo "=== Ghostfolio Update Completed at $(date) ===" >> "$UPDATE_LOG"
+    echo "=== ${PROJECT_NAME^} Update Completed at $(date) ===" >> "$UPDATE_LOG"
 }
 
 # Run main function with all arguments

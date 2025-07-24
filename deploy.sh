@@ -19,8 +19,10 @@
     echo "Next steps:"
     echo "1. Open http://localhost:${EXTERNAL_PORT} in your browser"
     echo "2. Create the first admin user account"
-    echo "3. Configure nginx reverse proxy to forward ${BASE_DOMAIN} to localhost:${EXTERNAL_PORT}"
-    echoCompose
+    # =============================================================================
+# GHOSTFOLIO DEPLOYMENT SCRIPT
+# =============================================================================
+# Automated setup script for deploying Ghostfolio with Docker Compose
 #
 # This script handles:
 # - Directory structure creation
@@ -32,6 +34,7 @@
 # Options:
 #   --setup-only    Only create directories and copy env files
 #   --start-only    Only start services (skip setup)
+#   --version       Show version information
 #   --help          Show this help message
 # =============================================================================
 
@@ -41,6 +44,11 @@ set -euo pipefail  # Exit on error, undefined vars, pipe failures
 # CONFIGURATION
 # -----------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Load version information
+if [[ -f "$SCRIPT_DIR/VERSION" ]]; then
+    source "$SCRIPT_DIR/VERSION"
+fi
 
 # Load environment variables if .env exists
 if [[ -f "$SCRIPT_DIR/.env" ]]; then
@@ -88,7 +96,7 @@ log_error() {
 # -----------------------------------------------------------------------------
 show_help() {
     cat << EOF
-Ghostfolio Deployment Script
+${PROJECT_NAME:-Ghostfolio Deployment} v${PROJECT_VERSION:-unknown}
 
 USAGE:
     $0 [OPTIONS]
@@ -96,12 +104,14 @@ USAGE:
 OPTIONS:
     --setup-only     Only create directories and environment files
     --start-only     Only start Docker services (skip setup)
+    --version        Show version information
     --help          Show this help message
 
 EXAMPLES:
     $0                    # Full deployment (setup + start)
     $0 --setup-only       # Setup directories and files only
     $0 --start-only       # Start services only
+    $0 --version          # Show version information
 
 DESCRIPTION:
     This script automates the deployment of Ghostfolio using Docker Compose.
@@ -109,9 +119,13 @@ DESCRIPTION:
     and starts the Docker services.
 
 REQUIREMENTS:
-    - Docker and Docker Compose installed
+    - Docker ${DOCKER_MIN_VERSION:-20.10.0}+ and Docker Compose ${DOCKER_COMPOSE_MIN_VERSION:-2.0.0}+
     - Sudo privileges for directory creation
     - Network access for pulling Docker images
+
+COMPATIBILITY:
+    - Ghostfolio: ${GHOSTFOLIO_MIN_VERSION:-2.180.0} - ${GHOSTFOLIO_MAX_VERSION:-2.999.0}
+    - Tested with: ${GHOSTFOLIO_TESTED_VERSION:-2.184.0}
 
 EOF
 }
@@ -306,6 +320,14 @@ main() {
                 start_only=true
                 shift
                 ;;
+            --version)
+                if command -v show_version_info &> /dev/null; then
+                    show_version_info
+                else
+                    echo "${PROJECT_NAME:-Ghostfolio Docker} v${PROJECT_VERSION:-unknown}"
+                fi
+                exit 0
+                ;;
             --help)
                 show_help
                 exit 0
@@ -326,7 +348,7 @@ main() {
     
     # Execute based on options
     if [[ "$start_only" == false ]]; then
-        log_info "Starting Ghostfolio deployment setup..."
+        log_info "Starting ${PROJECT_NAME:-Ghostfolio} deployment setup..."
         check_requirements
         create_directories
         setup_environment_files

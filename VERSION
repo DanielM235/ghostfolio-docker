@@ -1,0 +1,102 @@
+# =============================================================================
+# GHOSTFOLIO DOCKER PROJECT VERSION INFORMATION
+# =============================================================================
+# This file contains version and metadata information for the Ghostfolio Docker
+# deployment project. Update this file when making significant changes.
+# =============================================================================
+
+# Project version (semantic versioning: MAJOR.MINOR.PATCH)
+PROJECT_VERSION=1.0.0
+
+# Project metadata
+PROJECT_NAME="Ghostfolio Docker Deployment"
+PROJECT_DESCRIPTION="Production-ready Docker Compose setup for Ghostfolio wealth management"
+PROJECT_REPOSITORY="https://github.com/your-username/ghostfolio-docker"
+PROJECT_LICENSE="MIT"
+
+# Compatibility information
+GHOSTFOLIO_MIN_VERSION=2.180.0
+GHOSTFOLIO_MAX_VERSION=2.999.0
+GHOSTFOLIO_TESTED_VERSION=2.184.0
+
+# Docker requirements
+DOCKER_MIN_VERSION=20.10.0
+DOCKER_COMPOSE_MIN_VERSION=2.0.0
+
+# Supported platforms
+SUPPORTED_PLATFORMS="linux/amd64,linux/arm64,linux/arm/v7"
+
+# Build information (automatically updated)
+BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+BUILD_COMMIT=${GIT_COMMIT:-unknown}
+BUILD_BRANCH=${GIT_BRANCH:-unknown}
+
+# Changelog reference
+CHANGELOG_URL="https://github.com/your-username/ghostfolio-docker/blob/main/CHANGELOG.md"
+
+# Support and documentation
+DOCUMENTATION_URL="https://github.com/your-username/ghostfolio-docker/blob/main/README.md"
+ISSUES_URL="https://github.com/your-username/ghostfolio-docker/issues"
+
+# Version history tracking
+declare -A VERSION_HISTORY=(
+    ["1.0.0"]="2025-01-24 - Initial release with Docker Compose setup"
+    ["0.9.0"]="2025-01-20 - Beta release for testing"
+)
+
+# Dependencies versions
+POSTGRES_DEFAULT_VERSION=16
+REDIS_DEFAULT_VERSION=7
+NGINX_RECOMMENDED_VERSION="1.24+"
+
+# =============================================================================
+# VERSION FUNCTIONS
+# =============================================================================
+
+# Get the current project version
+get_project_version() {
+    echo "$PROJECT_VERSION"
+}
+
+# Get version with build information
+get_full_version() {
+    echo "${PROJECT_VERSION} (built on ${BUILD_DATE}, commit ${BUILD_COMMIT})"
+}
+
+# Check if a Ghostfolio version is compatible
+is_ghostfolio_compatible() {
+    local version="$1"
+    # Simple version comparison (you might want to use a more robust method)
+    if [[ "$version" < "$GHOSTFOLIO_MIN_VERSION" ]] || [[ "$version" > "$GHOSTFOLIO_MAX_VERSION" ]]; then
+        return 1
+    fi
+    return 0
+}
+
+# Display version information
+show_version_info() {
+    cat << EOF
+${PROJECT_NAME} v${PROJECT_VERSION}
+${PROJECT_DESCRIPTION}
+
+Build Information:
+  Version: ${PROJECT_VERSION}
+  Build Date: ${BUILD_DATE}
+  Commit: ${BUILD_COMMIT}
+  Branch: ${BUILD_BRANCH}
+
+Compatibility:
+  Ghostfolio: ${GHOSTFOLIO_MIN_VERSION} - ${GHOSTFOLIO_MAX_VERSION} (tested: ${GHOSTFOLIO_TESTED_VERSION})
+  Docker: ${DOCKER_MIN_VERSION}+
+  Docker Compose: ${DOCKER_COMPOSE_MIN_VERSION}+
+
+Support:
+  Documentation: ${DOCUMENTATION_URL}
+  Issues: ${ISSUES_URL}
+  Changelog: ${CHANGELOG_URL}
+EOF
+}
+
+# Export version information for use in other scripts
+export PROJECT_VERSION PROJECT_NAME GHOSTFOLIO_TESTED_VERSION
+export POSTGRES_DEFAULT_VERSION REDIS_DEFAULT_VERSION

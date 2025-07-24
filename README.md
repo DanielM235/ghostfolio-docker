@@ -2,6 +2,8 @@
 
 Production-ready Docker Compose configuration for self-hosting [Ghostfolio](https://github.com/ghostfolio/ghostfolio), an open-source wealth management software.
 
+**Current Version:** v1.0.0 | **Ghostfolio Version:** 2.184.0
+
 ## 🚀 Quick Start
 
 1. **Clone and setup**:
@@ -10,19 +12,24 @@ Production-ready Docker Compose configuration for self-hosting [Ghostfolio](http
    cd ghostfolio-docker
    ```
 
-2. **Configure environment**:
+2. **Check version information**:
+   ```bash
+   ./deploy.sh --version
+   ```
+
+3. **Configure environment**:
    ```bash
    cp .env.example .env
    cp .db.env.example .db.env
    # Edit both files and configure your specific settings
    ```
 
-3. **Deploy**:
+4. **Deploy**:
    ```bash
    ./deploy.sh
    ```
 
-4. **Access**: Open http://localhost:8061 (or your configured port) and create your admin account
+5. **Access**: Open http://localhost:8061 (or your configured port) and create your admin account
 
 ## 📋 Table of Contents
 
@@ -212,6 +219,7 @@ Automated deployment with directory setup and service management:
 ./deploy.sh                 # Full deployment
 ./deploy.sh --setup-only     # Setup directories and files only
 ./deploy.sh --start-only     # Start services only
+./deploy.sh --version       # Show version information
 ./deploy.sh --help          # Show help
 ```
 
@@ -224,6 +232,7 @@ Comprehensive backup solution:
 ./backup.sh --db-only       # Database only
 ./backup.sh --files-only    # User files only
 ./backup.sh --compress      # Create compressed archive
+./backup.sh --version       # Show version information
 ./backup.sh --help         # Show help
 ```
 
@@ -236,6 +245,7 @@ Safe update procedures:
 ./update.sh --to-version 2.185.0     # Update to specific version
 ./update.sh --dry-run               # Preview changes
 ./update.sh --rollback              # Rollback to previous version
+./update.sh --version               # Show version information
 ./update.sh --help                  # Show help
 ```
 
@@ -448,6 +458,30 @@ chmod 700 ${DATA_BASE_PATH}/data/cache/redis
 3. **Update container images monthly**
 4. **Review user accounts in Ghostfolio**
 5. **Backup encryption keys securely**
+
+## ℹ️ Version Information
+
+### Project Versioning
+
+This project follows [Semantic Versioning](https://semver.org/). Check version information:
+
+```bash
+./deploy.sh --version     # Show deployment script version
+./backup.sh --version     # Show backup script version  
+./update.sh --version     # Show update script version
+```
+
+### Ghostfolio Version Management
+
+- **Current Version**: Pinned to 2.184.0 (tested and stable)
+- **Update Strategy**: Use `./update.sh` for safe version updates
+- **Version Control**: All versions tracked in `CHANGELOG.md`
+
+### Compatibility Matrix
+
+| Project Version | Ghostfolio Version | Docker Compose | PostgreSQL | Redis |
+|----------------|-------------------|----------------|------------|-------|
+| 1.0.0          | 2.184.0          | 3.8+          | 16        | 7     |
 
 ## 📝 Additional Notes
 

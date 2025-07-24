@@ -17,6 +17,7 @@
 #   --backup-first         Create backup before update (recommended)
 #   --dry-run             Show what would be updated without making changes
 #   --rollback            Rollback to previous version
+#   --version             Show version information
 #   --help                Show help message
 # =============================================================================
 
@@ -26,6 +27,13 @@ set -euo pipefail
 # CONFIGURATION
 # -----------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Load version information
+if [[ -f "$SCRIPT_DIR/VERSION" ]]; then
+    source "$SCRIPT_DIR/VERSION"
+else
+    PROJECT_VERSION="unknown"
+fi
 
 # Load environment variables from .env file
 if [[ -f "$SCRIPT_DIR/.env" ]]; then
@@ -84,7 +92,7 @@ log_error() {
 # -----------------------------------------------------------------------------
 show_help() {
     cat << EOF
-Ghostfolio Update Script
+${PROJECT_NAME:-Ghostfolio} Update Script v${PROJECT_VERSION:-unknown}
 
 USAGE:
     $0 [OPTIONS]
@@ -94,6 +102,7 @@ OPTIONS:
     --backup-first        Create backup before update (recommended)
     --dry-run            Show what would be updated without making changes
     --rollback           Rollback to previous version from backup
+    --version            Show version information
     --help               Show this help message
 
 EXAMPLES:
@@ -426,6 +435,14 @@ main() {
             --rollback)
                 rollback=true
                 shift
+                ;;
+            --version)
+                echo "${PROJECT_NAME:-Ghostfolio} Update Script v${PROJECT_VERSION:-unknown}"
+                echo "Current Ghostfolio version: ${GHOSTFOLIO_VERSION:-latest}"
+                if [[ -f "$SCRIPT_DIR/.rollback_version" ]]; then
+                    echo "Rollback version available: $(cat "$SCRIPT_DIR/.rollback_version")"
+                fi
+                exit 0
                 ;;
             --help)
                 show_help

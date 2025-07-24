@@ -17,6 +17,7 @@
 #   --files-only    Backup files only
 #   --config-only   Backup configuration only
 #   --compress      Create compressed archive
+#   --version       Show version information
 #   --help          Show help message
 # =============================================================================
 
@@ -26,6 +27,11 @@ set -euo pipefail
 # CONFIGURATION
 # -----------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Load version information
+if [[ -f "$SCRIPT_DIR/VERSION" ]]; then
+    source "$SCRIPT_DIR/VERSION"
+fi
 
 # Load environment variables from .env file
 if [[ -f "$SCRIPT_DIR/.env" ]]; then
@@ -81,7 +87,7 @@ log_error() {
 # -----------------------------------------------------------------------------
 show_help() {
     cat << EOF
-Ghostfolio Backup Script
+${PROJECT_NAME:-Ghostfolio} Backup Script v${PROJECT_VERSION:-unknown}
 
 USAGE:
     $0 [OPTIONS]
@@ -91,6 +97,7 @@ OPTIONS:
     --files-only     Backup user files and storage only
     --config-only    Backup configuration files only
     --compress       Create compressed tar.gz archive
+    --version        Show version information
     --help          Show this help message
 
 EXAMPLES:
@@ -342,38 +349,41 @@ main() {
     local config_only=false
     local compress=false
     
-    # Parse command line arguments
-    while [[ $# -gt 0 ]]; do
-        case $1 in
-            --db-only)
-                db_only=true
-                shift
-                ;;
-            --files-only)
-                files_only=true
-                shift
-                ;;
-            --config-only)
-                config_only=true
-                shift
-                ;;
-            --compress)
-                compress=true
-                shift
-                ;;
-            --help)
-                show_help
-                exit 0
-                ;;
-            *)
-                log_error "Unknown option: $1"
-                show_help
-                exit 1
-                ;;
-        esac
-    done
-    
-    # Validate conflicting options
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --db-only)
+            BACKUP_DB_ONLY=true
+            shift
+            ;;
+        --files-only)
+            BACKUP_FILES_ONLY=true
+            shift
+            ;;
+        --config-only)
+            BACKUP_CONFIG_ONLY=true
+            shift
+            ;;
+        --compress)
+            COMPRESS=true
+            shift
+            ;;
+        --version)
+            echo "${PROJECT_NAME:-Ghostfolio} Backup Script v${PROJECT_VERSION:-unknown}"
+            echo "Container compatibility: ${GHOSTFOLIO_VERSION:-latest}"
+            exit 0
+            ;;
+        --help)
+            show_help
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            show_help
+            exit 1
+            ;;
+    esac
+done    # Validate conflicting options
     local option_count=0
     [[ "$db_only" == true ]] && ((option_count++))
     [[ "$files_only" == true ]] && ((option_count++))

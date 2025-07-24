@@ -49,7 +49,7 @@ fi
 
 # Use environment variables with fallbacks for initial setup
 PROJECT_NAME="${PROJECT_NAME:-ghostfolio}"
-BASE_DIR="${DATA_BASE_PATH:-/var/www/folio.dmla.tech}"
+BASE_DIR="${DATA_BASE_PATH:-/opt/ghostfolio}"
 EXTERNAL_PORT="${EXTERNAL_PORT:-8061}"
 BASE_DOMAIN="${BASE_DOMAIN:-localhost}"
 
@@ -279,7 +279,7 @@ verify_deployment() {
     echo "Next steps:"
     echo "1. Open http://localhost:8061 in your browser"
     echo "2. Create the first admin user account"
-    echo "3. Configure nginx reverse proxy to forward folio.dmla.tech to localhost:8061"
+    echo "3. Configure nginx reverse proxy to forward ${BASE_DOMAIN} to localhost:${EXTERNAL_PORT}"
     echo
     echo "Useful commands:"
     echo "  View logs:    docker compose logs -f"

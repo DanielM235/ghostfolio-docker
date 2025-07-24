@@ -119,7 +119,7 @@ openssl rand -base64 24
 The deployment script will create the required directory structure:
 
 ```bash
-sudo mkdir -p /var/www/folio.dmla.tech/{data/{db/postgre,cache/redis,storage},logs/{postgres,redis}}
+sudo mkdir -p ${DATA_BASE_PATH}/{data/{db/postgre,cache/redis,storage},logs/{postgres,redis}}
 ```
 
 ### 3. Deployment
@@ -146,8 +146,8 @@ Use the automated deployment script:
 | Variable | Description | Default | Example |
 |----------|-------------|---------|---------|
 | `PROJECT_NAME` | Project identifier | `ghostfolio` | `my-portfolio` |
-| `BASE_DOMAIN` | Application domain | `folio.dmla.tech` | `portfolio.example.com` |
-| `DATA_BASE_PATH` | Data storage path | `/var/www/folio.dmla.tech` | `/opt/ghostfolio` |
+| `BASE_DOMAIN` | Application domain | `localhost` | `portfolio.example.com` |
+| `DATA_BASE_PATH` | Data storage path | `/opt/ghostfolio` | `/var/www/portfolio` |
 | `EXTERNAL_PORT` | External port | `8061` | `8080` |
 | `GHOSTFOLIO_VERSION` | App version | `2.184.0` | `2.185.0` |
 | `POSTGRES_VERSION` | PostgreSQL version | `16` | `15` |

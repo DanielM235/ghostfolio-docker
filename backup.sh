@@ -36,7 +36,7 @@ else
 fi
 
 # Use environment variables with fallbacks
-BASE_DIR="${DATA_BASE_PATH:-/var/www/folio.dmla.tech}"
+BASE_DIR="${DATA_BASE_PATH:-/opt/ghostfolio}"
 PROJECT_NAME="${PROJECT_NAME:-ghostfolio}"
 BACKUP_DIR="/var/backups/${PROJECT_NAME}"
 DATE_FORMAT=$(date +"%Y%m%d_%H%M%S")

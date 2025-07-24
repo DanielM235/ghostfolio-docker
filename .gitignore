@@ -1,0 +1,50 @@
+# Security and environment files - never commit these to version control
+.env
+.db.env
+
+# Backup files
+*.backup
+.rollback_version
+
+# Log files
+*.log
+logs/
+
+# Data directories (when using local data)
+data/
+
+# Temporary files
+.tmp/
+*.tmp
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Docker override files (if used for local development)
+docker-compose.override.yml
+
+# SSL certificates (if stored locally)
+*.pem
+*.key
+*.crt
+*.cert
+
+# Database dumps
+*.sql
+*.dump
+
+# Compressed archives
+*.tar.gz
+*.zip
+
+# Runtime files
+*.pid
+*.sock

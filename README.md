@@ -498,6 +498,19 @@ This project follows [Semantic Versioning](https://semver.org/). Check version i
 - **Development**: Use `latest` tags, relaxed security
 - **Production**: Pin versions, enforce security, enable monitoring
 
+### Documentation
+
+Comprehensive guides are available in the [`docs/`](docs/) directory:
+
+- 🐳 **[Docker Commands](docs/docker-commands.md)** - Container management and debugging
+- 🔗 **[Redis Management](docs/redis-management.md)** - Cache configuration and optimization  
+- 📊 **[Logging & Debugging](docs/logging-debugging.md)** - Troubleshooting and monitoring
+- ✏️ **[Text Editors & Tools](docs/editors-tools.md)** - Development environment setup
+- 🔐 **[Permissions Guide](docs/permissions-guide.md)** - File access and security
+- ⚡ **[Advanced Optimization](docs/advanced-optimization.md)** - Performance and production hardening
+
+See the [Documentation Index](docs/README.md) for a complete overview.
+
 ### Support
 
 - **Ghostfolio Documentation**: https://github.com/ghostfolio/ghostfolio

@@ -1,0 +1,271 @@
+# =============================================================================
+# GHOSTFOLIO DOCKER COMPOSE CONFIGURATION
+# =============================================================================
+# Production-ready Docker Compose setup for Ghostfolio wealth management
+# 
+# Services:
+# - Ghostfolio app (wealth management application)
+# - PostgreSQL database (data persistence)
+# - Redis cache (session & performance caching)
+#
+# Security features:
+# - Isolated network for service communication
+# - Environment-based secrets management
+# - Health checks for all services
+# - Resource limits and restart policies
+#
+# Version: Uses Ghostfolio version from environment variable (pinned for stability)
+# =============================================================================
+
+# =============================================================================
+# SERVICES DEFINITION
+# =============================================================================
+services:
+  
+  # ---------------------------------------------------------------------------
+  # GHOSTFOLIO APPLICATION SERVICE
+  # ---------------------------------------------------------------------------
+  # Main application container running the Ghostfolio web application
+  # Handles portfolio management, user interface, and business logic
+  # ---------------------------------------------------------------------------
+  ghostfolio:
+    # Using configurable version from environment variable
+    # Update GHOSTFOLIO_VERSION in .env to change version
+    image: ghostfolio/ghostfolio:${GHOSTFOLIO_VERSION}
+    container_name: ${PROJECT_NAME}_app
+    
+    # Restart policy: always restart on failure or system reboot
+    restart: unless-stopped
+    
+    # Port mapping: expose internal port to configurable external port
+    # External port configured via EXTERNAL_PORT environment variable
+    ports:
+      - "${EXTERNAL_PORT}:${PORT}"
+    
+    # Environment variables loaded from .env file
+    # Contains application configuration and secrets
+    env_file:
+      - .env
+    
+    # Service dependencies: wait for database and cache to be ready
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    
+    # Docker network for internal service communication
+    networks:
+      - ghostfolio-network
+    
+    # Volume mounts for persistent data
+    volumes:
+      # Application logs for monitoring and debugging
+      - ${DATA_BASE_PATH}/logs:/app/logs
+      # User uploaded files and application storage
+      - ${DATA_BASE_PATH}/data/storage:/app/storage
+    
+    # Resource limits to prevent resource exhaustion
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    
+    # Health check to verify application is responding
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${PORT}/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ---------------------------------------------------------------------------
+  # POSTGRESQL DATABASE SERVICE
+  # ---------------------------------------------------------------------------
+  # Primary database for storing all Ghostfolio data
+  # Handles user accounts, portfolios, transactions, and application state
+  # ---------------------------------------------------------------------------
+  postgres:
+    # Using PostgreSQL version from environment variable
+    # Alpine variant reduces image size and attack surface
+    image: postgres:${POSTGRES_VERSION}-alpine
+    container_name: ${PROJECT_NAME}_postgres
+    
+    # Restart policy: always restart on failure
+    restart: unless-stopped
+    
+    # Environment variables for database configuration
+    # Loaded from .db.env file for security isolation
+    env_file:
+      - .db.env
+    
+    # Additional PostgreSQL configuration
+    environment:
+      # Timezone setting for consistent timestamp handling
+      TZ: UTC
+      # Performance optimizations for production use
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
+    
+    # Docker network for internal communication only
+    networks:
+      - ghostfolio-network
+    
+    # Volume mounts for data persistence
+    volumes:
+      # Main database data directory
+      - ${DATA_BASE_PATH}/data/db/postgre:/var/lib/postgresql/data
+      # PostgreSQL logs for monitoring
+      - ${DATA_BASE_PATH}/logs/postgres:/var/log/postgresql
+    
+    # Resource limits for database performance
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 1G
+          cpus: '1.0'
+    
+    # Health check to verify database connectivity
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    
+    # PostgreSQL configuration optimizations
+    command: [
+      "postgres",
+      # Connection settings
+      "-c", "max_connections=200",
+      "-c", "listen_addresses=*",
+      
+      # Memory settings (adjust based on server resources)
+      "-c", "shared_buffers=256MB",
+      "-c", "effective_cache_size=1GB",
+      "-c", "work_mem=4MB",
+      "-c", "maintenance_work_mem=64MB",
+      
+      # Write performance
+      "-c", "wal_buffers=16MB",
+      "-c", "checkpoint_completion_target=0.9",
+      "-c", "checkpoint_timeout=15min",
+      
+      # Logging for debugging (disable in production if not needed)
+      "-c", "log_statement=none",
+      "-c", "log_min_duration_statement=1000",
+      "-c", "log_line_prefix=%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h ",
+      
+      # Security settings
+      "-c", "ssl=off",
+      "-c", "password_encryption=scram-sha-256"
+    ]
+
+  # ---------------------------------------------------------------------------
+  # REDIS CACHE SERVICE  
+  # ---------------------------------------------------------------------------
+  # High-performance in-memory cache for sessions and application data
+  # Improves response times and reduces database load
+  # ---------------------------------------------------------------------------
+  redis:
+    # Using Redis version from environment variable
+    image: redis:${REDIS_VERSION}-alpine
+    container_name: ${PROJECT_NAME}_redis
+    
+    # Restart policy: always restart on failure
+    restart: unless-stopped
+    
+    # Environment variables for Redis configuration
+    env_file:
+      - .db.env
+    
+    # Docker network for internal communication
+    networks:
+      - ghostfolio-network
+    
+    # Volume mounts for cache persistence
+    volumes:
+      # Redis data persistence (RDB snapshots and AOF logs)
+      - ${DATA_BASE_PATH}/data/cache/redis:/data
+      # Redis logs for monitoring
+      - ${DATA_BASE_PATH}/logs/redis:/var/log/redis
+    
+    # Resource limits for cache performance
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    
+    # Health check to verify Redis connectivity
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    # Redis configuration for production use
+    command: [
+      "redis-server",
+      "--appendonly", "yes",              # Enable AOF persistence
+      "--appendfsync", "everysec",        # AOF sync every second
+      "--auto-aof-rewrite-percentage", "100",
+      "--auto-aof-rewrite-min-size", "64mb",
+      "--save", "900 1",                  # RDB snapshot: save if 1 key changes in 900s
+      "--save", "300 10",                 # RDB snapshot: save if 10 keys change in 300s  
+      "--save", "60 10000",               # RDB snapshot: save if 10000 keys change in 60s
+      "--stop-writes-on-bgsave-error", "yes",
+      "--rdbcompression", "yes",          # Compress RDB files
+      "--rdbchecksum", "yes",             # Checksum RDB files
+      "--maxmemory", "400mb",             # Memory limit (below container limit)
+      "--maxmemory-policy", "allkeys-lru", # Evict least recently used keys
+      "--timeout", "300",                 # Client timeout after 5 minutes
+      "--tcp-keepalive", "300",           # TCP keepalive
+      "--requirepass", "${REDIS_PASSWORD}" # Password authentication
+    ]
+
+# =============================================================================
+# NETWORKS CONFIGURATION
+# =============================================================================
+# Isolated network for secure service communication
+# Services can communicate using container names as hostnames
+# =============================================================================
+networks:
+  ghostfolio-network:
+    driver: bridge
+    # Custom network configuration for security
+    driver_opts:
+      com.docker.network.bridge.name: ${PROJECT_NAME}0
+    ipam:
+      driver: default
+      config:
+        # Private subnet for service communication
+        - subnet: ${DOCKER_SUBNET}
+          gateway: ${DOCKER_GATEWAY}
+
+# =============================================================================
+# VOLUMES CONFIGURATION
+# =============================================================================
+# Note: Using bind mounts instead of named volumes for easier backup and management
+# All data stored under DATA_BASE_PATH environment variable for centralized administration
+# 
+# Directory structure:
+# ${DATA_BASE_PATH}/
+# ├── data/
+# │   ├── db/postgre/        # PostgreSQL data files
+# │   ├── cache/redis/       # Redis persistence files  
+# │   └── storage/           # User uploaded files
+# └── logs/                  # Service logs
+#     ├── postgres/          # PostgreSQL logs
+#     └── redis/             # Redis logs
+# =============================================================================
